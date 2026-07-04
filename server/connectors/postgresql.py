@@ -13,7 +13,7 @@ import psycopg2.extras
 
 NAME = "PostgreSQL"
 
-STREAM_BATCH_SIZE = 2000
+STREAM_BATCH_SIZE = int(os.getenv("DB_STREAM_BATCH_SIZE", "2000"))
 
 
 def _connect():
@@ -40,16 +40,20 @@ def stream_query(query, params=None):
     cur = conn.cursor(name="simple_report_stream")
     cur.itersize = STREAM_BATCH_SIZE
     cur.execute(query, params or {})
+
+    # У именованных курсоров psycopg2 .description пуст сразу после execute()
+    # (execute() там на деле делает DECLARE CURSOR) — появляется только после
+    # первого fetch, поэтому забираем первую пачку заранее.
+    first_batch = cur.fetchmany(STREAM_BATCH_SIZE)
     columns = [d.name for d in cur.description]
 
     def _rows():
         try:
-            while True:
-                batch = cur.fetchmany(STREAM_BATCH_SIZE)
-                if not batch:
-                    break
+            batch = first_batch
+            while batch:
                 for row in batch:
                     yield row
+                batch = cur.fetchmany(STREAM_BATCH_SIZE)
         finally:
             cur.close()
             conn.close()

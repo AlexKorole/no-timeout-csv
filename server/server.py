@@ -149,6 +149,17 @@ def load_report_config(report_id):
         return json.load(f)
 
 
+def load_run_params(out_dir, ts):
+    path = os.path.join(out_dir, f"{ts}.params.json")
+    if not os.path.exists(path):
+        return None
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
 def list_runs(report_id):
     out_dir = os.path.join(RESULTS_DIR, report_id)
     if not os.path.isdir(out_dir):
@@ -164,6 +175,7 @@ def list_runs(report_id):
             runs.append({
                 "file": fname, "status": "done", "ts": m.group("ts"),
                 "size_bytes": st.st_size,
+                "params": load_run_params(out_dir, m.group("ts")),
             })
             continue
 
@@ -174,6 +186,7 @@ def list_runs(report_id):
             runs.append({
                 "file": fname, "status": "error", "ts": m.group("ts"),
                 "error": text.strip().splitlines()[-1] if text.strip() else "неизвестная ошибка",
+                "params": load_run_params(out_dir, m.group("ts")),
             })
             continue
 
@@ -190,6 +203,7 @@ def list_runs(report_id):
             runs.append({
                 "file": fname, "status": status, "ts": m.group("ts"),
                 "size_bytes": st.st_size,
+                "params": load_run_params(out_dir, m.group("ts")),
             })
             continue
 

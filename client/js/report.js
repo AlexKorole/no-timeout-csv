@@ -121,7 +121,7 @@ async function loadHistory() {
     } else {
       el.innerHTML = `
         <table>
-          <thead><tr><th>Когда</th><th>Статус</th><th>Размер</th><th></th></tr></thead>
+          <thead><tr><th>Когда</th><th>Статус</th><th>Размер</th><th>Параметры</th><th></th></tr></thead>
           <tbody>${runs.map(runRow).join("")}</tbody>
         </table>`;
       el.querySelectorAll("[data-delete]").forEach((btn) => {
@@ -134,6 +134,26 @@ async function loadHistory() {
   } catch (e) {
     el.innerHTML = `<p class="error-box">${escapeHtml(e.message)}</p>`;
   }
+}
+
+function formatParamsCell(runParams) {
+  if (!runParams) return '<span class="muted">—</span>';
+  const rows = (report.params || []).map((p) => {
+    const label = p.view_name || p.name;
+    const raw = runParams[p.name];
+    let valueHtml;
+    if (raw === undefined || raw === null || raw === "") {
+      valueHtml = "Все";
+    } else if (Array.isArray(raw)) {
+      valueHtml = raw.length
+        ? raw.map((v) => escapeHtml(String(v))).join("<br>")
+        : "Все";
+    } else {
+      valueHtml = escapeHtml(String(raw));
+    }
+    return `<div class="param-row"><span class="param-badge">${escapeHtml(label)}</span><span class="param-value">${valueHtml}</span></div>`;
+  });
+  return rows.join("") || '<span class="muted">—</span>';
 }
 
 function runRow(r) {
@@ -150,6 +170,7 @@ function runRow(r) {
     <td>${when}</td>
     <td><span class="status ${r.status}"${errTitle}>${statusText}</span></td>
     <td>${formatSize(r.size_bytes)}</td>
+    <td>${formatParamsCell(r.params)}</td>
     <td class="actions">${dl}${del}</td>
   </tr>`;
 }
