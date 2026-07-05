@@ -7,32 +7,33 @@
 </head>
 <body>
   <header>
-    <a href="/index.html">← Мои отчёты</a>
-    <a href="#" id="settingsLink" class="btn secondary">Настройки</a>
+    <a href="/index.html" data-i18n="nav.backToList">← Мои отчёты</a>
+    <a href="#" id="settingsLink" class="btn secondary" data-i18n="nav.settings">Настройки</a>
   </header>
   <main>
     <h2 id="reportName">…</h2>
     <p id="reportDesc" class="muted"></p>
 
     <div class="tabs">
-      <button class="btn" id="tabRunBtn">Выполнение</button>
-      <button class="btn secondary" id="tabHistoryBtn">История</button>
+      <button class="btn" id="tabRunBtn" data-i18n="report.tab.run">Выполнение</button>
+      <button class="btn secondary" id="tabHistoryBtn" data-i18n="report.tab.history">История</button>
     </div>
 
     <section id="panelRun">
       <div class="card">
         <form id="paramsForm"></form>
-        <button class="btn" id="runBtn">Сформировать сейчас</button>
+        <button class="btn" id="runBtn" data-i18n="report.runButton">Сформировать сейчас</button>
         <div id="runMsg" class="muted" style="margin-top:10px"></div>
       </div>
     </section>
 
     <section id="panelHistory" style="display:none">
-      <div id="historyList">Загрузка…</div>
+      <div id="historyList" data-i18n="common.loading">Загрузка…</div>
     </section>
   </main>
   <script src="/js/api.js"></script>
   <script src="/js/config.js"></script>
+  <script src="/js/i18n.js"></script>
   <script src="/js/report.js"></script>
 </body>
 </html>

@@ -17,6 +17,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from connector_loader import load_connector  # noqa: E402
 from envfile import load_env_file  # noqa: E402
+from messages import msg  # noqa: E402
 
 
 def main():
@@ -29,7 +30,7 @@ def main():
 
     connector = load_connector(args.connector)
     if not hasattr(connector, "get_columns"):
-        print(f"Коннектор '{args.connector}' не поддерживает get_columns", file=sys.stderr)
+        print(msg("connector_no_get_columns", connector=args.connector), file=sys.stderr)
         sys.exit(1)
 
     columns = connector.get_columns(args.query)

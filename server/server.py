@@ -28,6 +28,7 @@ from urllib.parse import urlparse, unquote
 
 from envfile import load_env_file
 from connector_loader import list_connectors
+from messages import msg
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CONFIGS_DIR = os.path.join(BASE_DIR, "configs")
@@ -208,7 +209,7 @@ def list_runs(report_id):
                 text = f.read()
             runs.append({
                 "file": fname, "status": "error", "ts": m.group("ts"),
-                "error": text.strip().splitlines()[-1] if text.strip() else "неизвестная ошибка",
+                "error": text.strip().splitlines()[-1] if text.strip() else msg("unknown_error"),
                 "params": load_run_params(out_dir, m.group("ts")),
             })
             continue
@@ -237,17 +238,17 @@ def list_runs(report_id):
 def delete_run(report_id, filename):
     # запрет выхода за пределы папки отчёта через имя файла
     if "/" in filename or "\\" in filename or ".." in filename:
-        return False, "некорректное имя файла"
+        return False, msg("invalid_filename")
     path = os.path.join(RESULTS_DIR, report_id, filename)
     if not os.path.exists(path):
-        return False, "файл не найден"
+        return False, msg("file_not_found")
     try:
         os.remove(path)
     except OSError as e:
         # На Windows файл, открытый другим процессом (скачивается прямо сейчас,
         # просканирован антивирусом и т.п.), нельзя удалить — на Unix та же
         # операция тихо сработает всегда. Отдаём это как понятную ошибку клиенту.
-        return False, f"файл занят, попробуйте позже ({e.strerror or e})"
+        return False, msg("file_busy", detail=e.strerror or e)
 
     # у файла результата (.csv/.error.txt/.csv.part) и sidecar-файла с параметрами
     # общий префикс — <ts> — удаляем и его, иначе он останется сиротой навсегда
@@ -313,7 +314,7 @@ class Handler(BaseHTTPRequestHandler):
         if m:
             cfg = load_report_config(m.group(1))
             if cfg is None:
-                return self._error(404, "отчёт не найден")
+                return self._error(404, msg("report_not_found"))
             return self._json(200, cfg)
 
         return self._static(path)
@@ -332,12 +333,12 @@ class Handler(BaseHTTPRequestHandler):
         if m:
             report_id = m.group(1)
             if load_report_config(report_id) is None:
-                return self._error(404, "отчёт не найден")
+                return self._error(404, msg("report_not_found"))
             body = self._read_json_body()
             request_run(report_id, body.get("params", {}))
             return self._json(200, {"ok": True})
 
-        return self._error(404, "не найдено")
+        return self._error(404, msg("not_found"))
 
     def do_PUT(self):
         parsed = urlparse(self.path)
@@ -347,7 +348,7 @@ class Handler(BaseHTTPRequestHandler):
         if m:
             return self._update_report(m.group(1))
 
-        return self._error(404, "не найдено")
+        return self._error(404, msg("not_found"))
 
     def do_DELETE(self):
         parsed = urlparse(self.path)
@@ -360,44 +361,44 @@ class Handler(BaseHTTPRequestHandler):
                 return self._error(409, err)
             return self._json(200, {"ok": True})
 
-        return self._error(404, "не найдено")
+        return self._error(404, msg("not_found"))
 
     def _preview_columns(self):
         body = self._read_json_body()
         connector_name = (body.get("connector") or "").strip()
         query = body.get("query") or ""
         if not connector_name or not query.strip():
-            return self._error(400, "нужны connector и query")
+            return self._error(400, msg("need_connector_and_query"))
         try:
             result = subprocess.run(
                 [sys.executable, REPORT_COLUMNS_PATH, "--connector", connector_name, "--query", query],
                 cwd=BASE_DIR, capture_output=True, text=True, timeout=15,
             )
         except subprocess.TimeoutExpired:
-            return self._error(504, "запрос колонок выполняется слишком долго")
+            return self._error(504, msg("columns_timeout"))
         if result.returncode != 0:
-            return self._error(500, result.stderr.strip() or "не удалось получить колонки")
+            return self._error(500, result.stderr.strip() or msg("columns_failed"))
         try:
             columns = json.loads(result.stdout)
         except json.JSONDecodeError:
-            return self._error(500, "некорректный ответ от report_columns.py")
+            return self._error(500, msg("bad_columns_response"))
         return self._json(200, columns)
 
     def _create_report(self):
         body = self._read_json_body()
         report_id = (body.get("id") or "").strip()
         if not ID_RE.match(report_id):
-            return self._error(400, "идентификатор может содержать только буквы, цифры, _ и -")
+            return self._error(400, msg("invalid_id_format"))
         config_path = os.path.join(CONFIGS_DIR, f"{report_id}.json")
         if os.path.exists(config_path):
-            return self._error(409, "отчёт с таким идентификатором уже существует")
+            return self._error(409, msg("id_already_exists"))
         save_report_config(report_id, report_config_from_body(report_id, body))
         return self._json(200, {"ok": True, "id": report_id})
 
     def _update_report(self, report_id):
         config_path = os.path.join(CONFIGS_DIR, f"{report_id}.json")
         if not os.path.exists(config_path):
-            return self._error(404, "отчёт не найден")
+            return self._error(404, msg("report_not_found"))
         body = self._read_json_body()
         save_report_config(report_id, report_config_from_body(report_id, body))
         return self._json(200, {"ok": True})
@@ -405,28 +406,28 @@ class Handler(BaseHTTPRequestHandler):
     def _param_options(self, report_id, param_name):
         config_path = os.path.join(CONFIGS_DIR, f"{report_id}.json")
         if not os.path.exists(config_path):
-            return self._error(404, "отчёт не найден")
+            return self._error(404, msg("report_not_found"))
         try:
             result = subprocess.run(
                 [sys.executable, PARAM_OPTIONS_PATH, "--config", config_path, "--param", param_name],
                 cwd=BASE_DIR, capture_output=True, text=True, timeout=15,
             )
         except subprocess.TimeoutExpired:
-            return self._error(504, "список значений грузится слишком долго")
+            return self._error(504, msg("options_timeout"))
         if result.returncode != 0:
-            return self._error(500, result.stderr.strip() or "не удалось получить список значений")
+            return self._error(500, result.stderr.strip() or msg("options_failed"))
         try:
             options = json.loads(result.stdout)
         except json.JSONDecodeError:
-            return self._error(500, "некорректный ответ от param_options.py")
+            return self._error(500, msg("bad_options_response"))
         return self._json(200, options)
 
     def _download(self, report_id, filename):
         if "/" in filename or "\\" in filename or ".." in filename:
-            return self._error(400, "некорректное имя файла")
+            return self._error(400, msg("invalid_filename"))
         path = os.path.join(RESULTS_DIR, report_id, filename)
         if not os.path.exists(path):
-            return self._error(404, "файл не найден")
+            return self._error(404, msg("file_not_found"))
         self.send_response(200)
         self.send_header("Content-Type", "text/csv; charset=utf-8")
         self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
@@ -441,7 +442,7 @@ class Handler(BaseHTTPRequestHandler):
             path = "/index.html"
         full = os.path.abspath(os.path.join(CLIENT_DIR, path.lstrip("/")))
         if not full.startswith(CLIENT_DIR) or not os.path.isfile(full):
-            return self._error(404, "не найдено")
+            return self._error(404, msg("not_found"))
 
         content_types = {
             ".html": "text/html; charset=utf-8",

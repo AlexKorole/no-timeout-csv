@@ -14,6 +14,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from connector_loader import load_connector  # noqa: E402
 from envfile import load_env_file  # noqa: E402
+from messages import msg  # noqa: E402
 
 
 def main():
@@ -29,7 +30,7 @@ def main():
 
     param = next((p for p in config.get("params", []) if p["name"] == args.param), None)
     if param is None:
-        print(f"Параметр '{args.param}' не найден в конфиге", file=sys.stderr)
+        print(msg("param_not_found", param=args.param), file=sys.stderr)
         sys.exit(1)
 
     connector = load_connector(config["connector"])
@@ -50,7 +51,7 @@ def main():
         return
 
     if not param.get("list_query"):
-        print(f"У параметра '{args.param}' не задан list_query/min_query/max_query", file=sys.stderr)
+        print(msg("no_list_or_minmax_query", param=args.param), file=sys.stderr)
         sys.exit(1)
 
     rows = connector.execute_query(param["list_query"])

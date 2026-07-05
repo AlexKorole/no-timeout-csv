@@ -7,52 +7,54 @@
 </head>
 <body>
   <header>
-    <a href="/index.html">← Мои отчёты</a>
+    <a href="/index.html" data-i18n="nav.backToList">← Мои отчёты</a>
   </header>
   <main>
-    <h2 id="pageTitle">Новый отчёт</h2>
+    <h2 id="pageTitle" data-i18n="settings.title.new">Новый отчёт</h2>
 
     <div class="card">
-      <label>Идентификатор (буквы/цифры/_/-, задаётся один раз при создании)
-        <input id="f_id" pattern="[A-Za-z0-9_-]+" title="Только латинские буквы, цифры, _ и -" />
+      <label><span data-i18n="settings.field.id">Идентификатор (буквы/цифры/_/-, задаётся один раз при создании)</span>
+        <input id="f_id" pattern="[A-Za-z0-9_-]+" data-i18n-title="settings.field.idPattern.title" title="Только латинские буквы, цифры, _ и -" />
       </label>
-      <label>Название
+      <label><span data-i18n="settings.field.name">Название</span>
         <input id="f_name" />
       </label>
-      <label>Описание
+      <label><span data-i18n="settings.field.description">Описание</span>
         <input id="f_description" />
       </label>
-      <label>Коннектор
+      <label><span data-i18n="settings.field.connector">Коннектор</span>
         <select id="f_connector"></select>
       </label>
-      <label>SQL-запрос (именованные параметры в стиле %(имя)s)
+      <label><span data-i18n="settings.field.sql">SQL-запрос (именованные параметры в стиле %(имя)s)</span>
         <textarea id="f_sql" rows="6" class="code-input"></textarea>
       </label>
     </div>
 
     <div class="card">
-      <h3>Колонки</h3>
-      <label>Запрос для получения списка колонок (без данных — например с LIMIT 0; можно и вызов хранимой процедуры)
+      <h3 data-i18n="settings.columns.title">Колонки</h3>
+      <label><span data-i18n="settings.columns.query">Запрос для получения списка колонок (без данных — например с LIMIT 0; можно и вызов хранимой процедуры)</span>
         <textarea id="f_columns_query" rows="2" class="code-input"></textarea>
       </label>
-      <button class="btn secondary" id="loadColumnsBtn">Загрузить колонки</button>
+      <button class="btn secondary" id="loadColumnsBtn" data-i18n="settings.columns.loadButton">Загрузить колонки</button>
       <div id="columnsMsg" class="muted" style="margin-top:8px"></div>
       <div id="columnsList" style="margin-top:12px"></div>
     </div>
 
     <div class="card">
-      <h3>Параметры</h3>
+      <h3 data-i18n="settings.params.title">Параметры</h3>
       <div id="paramsList"></div>
-      <button class="btn secondary" id="addParamBtn">+ Параметр</button>
+      <button class="btn secondary" id="addParamBtn" data-i18n="settings.params.addButton">+ Параметр</button>
     </div>
 
     <div style="margin-top:16px">
-      <button class="btn" id="saveBtn">Сохранить</button>
-      <button class="btn secondary" id="closeBtn">Закрыть</button>
+      <button class="btn" id="saveBtn" data-i18n="settings.save">Сохранить</button>
+      <button class="btn secondary" id="closeBtn" data-i18n="settings.close">Закрыть</button>
       <span id="saveMsg" class="muted"></span>
     </div>
   </main>
   <script src="/js/api.js"></script>
+  <script src="/js/config.js"></script>
+  <script src="/js/i18n.js"></script>
   <script src="/js/settings.js"></script>
 </body>
 </html>

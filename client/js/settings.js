@@ -10,6 +10,7 @@ function escapeHtml(s) {
 }
 
 async function init() {
+  applyStaticTranslations();
   document.getElementById("loadColumnsBtn").addEventListener("click", loadColumns);
   document.getElementById("addParamBtn").addEventListener("click", () => addParamRow());
   document.getElementById("saveBtn").addEventListener("click", save);
@@ -23,7 +24,7 @@ async function init() {
   await loadConnectorOptions();
 
   if (editId) {
-    document.getElementById("pageTitle").textContent = "Настройки отчёта";
+    document.getElementById("pageTitle").textContent = t("settings.title.edit");
     document.getElementById("f_id").disabled = true;
     try {
       const cfg = await api.getReport(editId);
@@ -59,7 +60,7 @@ function fillForm(cfg) {
 
 async function loadColumns() {
   const msg = document.getElementById("columnsMsg");
-  msg.textContent = "Загружаю…";
+  msg.textContent = t("common.loading");
   // сохраняем то, что уже введено в текущих полях, прежде чем перерисовать список
   existingMapping = { ...existingMapping, ...collectColumnMapping() };
   try {
@@ -67,7 +68,7 @@ async function loadColumns() {
     const query = document.getElementById("f_columns_query").value;
     const columns = await api.previewColumns(connector, query);
     loadedColumns = columns;
-    msg.textContent = `Найдено колонок: ${columns.length}`;
+    msg.textContent = t("settings.columns.found", { n: columns.length });
     renderColumnsList();
   } catch (e) {
     msg.textContent = e.message;
@@ -77,11 +78,11 @@ async function loadColumns() {
 function renderColumnsList() {
   const el = document.getElementById("columnsList");
   if (loadedColumns.length === 0) {
-    el.innerHTML = '<p class="muted">Колонки ещё не загружены.</p>';
+    el.innerHTML = `<p class="muted">${escapeHtml(t("settings.columns.notLoaded"))}</p>`;
     return;
   }
   el.innerHTML = loadedColumns.map((col) => `
-    <label>${escapeHtml(col)} → название в CSV
+    <label>${escapeHtml(col)} ${escapeHtml(t("settings.columns.mappingArrow"))}
       <input class="col-mapping" data-col="${escapeHtml(col)}" value="${escapeHtml(existingMapping[col] || col)}" />
     </label>
   `).join("");
@@ -99,30 +100,30 @@ function addParamRow(p) {
   const wrap = document.createElement("div");
   wrap.className = "card";
   wrap.innerHTML = `
-    <label>Имя переменной (как в SQL)
+    <label>${escapeHtml(t("settings.param.name"))}
       <input class="p_name" value="${escapeHtml(p?.name || "")}" />
     </label>
-    <label>Подпись для пользователя
+    <label>${escapeHtml(t("settings.param.viewName"))}
       <input class="p_view_name" value="${escapeHtml(p?.view_name || "")}" />
     </label>
-    <label>Тип
+    <label>${escapeHtml(t("settings.param.type"))}
       <select class="p_type">
-        <option value="string">Текст</option>
-        <option value="number">Число</option>
-        <option value="date">Дата</option>
-        <option value="multilist">Список (мультивыбор)</option>
+        <option value="string">${escapeHtml(t("settings.param.type.string"))}</option>
+        <option value="number">${escapeHtml(t("settings.param.type.number"))}</option>
+        <option value="date">${escapeHtml(t("settings.param.type.date"))}</option>
+        <option value="multilist">${escapeHtml(t("settings.param.type.multilist"))}</option>
       </select>
     </label>
-    <label class="p_list_query_wrap" style="display:none">SQL для списка значений (1-я колонка — значение, 2-я опционально — подпись)
+    <label class="p_list_query_wrap" style="display:none">${escapeHtml(t("settings.param.listQuery"))}
       <textarea class="p_list_query code-input" rows="2"></textarea>
     </label>
-    <label class="p_min_wrap" style="display:none">SQL для подсказки "мин." (необязательно, одна колонка)
+    <label class="p_min_wrap" style="display:none">${escapeHtml(t("settings.param.minQuery"))}
       <input class="p_min_query" />
     </label>
-    <label class="p_max_wrap" style="display:none">SQL для подсказки "макс." (необязательно, одна колонка)
+    <label class="p_max_wrap" style="display:none">${escapeHtml(t("settings.param.maxQuery"))}
       <input class="p_max_query" />
     </label>
-    <button class="btn secondary p_remove" type="button">Удалить параметр</button>
+    <button class="btn secondary p_remove" type="button">${escapeHtml(t("settings.param.remove"))}</button>
   `;
   wrap.querySelector(".p_type").value = p?.type || "string";
   wrap.querySelector(".p_list_query").value = p?.list_query || "";
@@ -173,14 +174,14 @@ async function save() {
   const msg = document.getElementById("saveMsg");
   const id = document.getElementById("f_id").value.trim();
   if (!id) {
-    msg.textContent = "Укажите идентификатор";
+    msg.textContent = t("settings.needId");
     return;
   }
   if (!ID_RE.test(id)) {
-    msg.textContent = "Идентификатор может содержать только латинские буквы, цифры, _ и -";
+    msg.textContent = t("settings.idFormatError");
     return;
   }
-  msg.textContent = "Сохраняю…";
+  msg.textContent = t("settings.saving");
   const payload = {
     id,
     name: document.getElementById("f_name").value.trim(),
@@ -194,10 +195,10 @@ async function save() {
   try {
     if (editId) {
       await api.updateReport(editId, payload);
-      msg.textContent = "Сохранено.";
+      msg.textContent = t("settings.saved");
     } else {
       await api.createReport(payload);
-      msg.textContent = "Сохранено, переходим к отчёту…";
+      msg.textContent = t("settings.savedRedirect");
       window.location.href = `/settings.html?id=${encodeURIComponent(id)}`;
     }
   } catch (e) {

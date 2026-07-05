@@ -7,14 +7,16 @@
 </head>
 <body>
   <header>
-    <strong>simple_report</strong>
-    <a href="/settings.html" class="btn secondary">+ Новый отчёт</a>
+    <strong data-i18n="app.title">simple_report</strong>
+    <a href="/settings.html" class="btn secondary" data-i18n="nav.newReport">+ Новый отчёт</a>
   </header>
   <main>
-    <h2>Мои отчёты</h2>
-    <div id="list">Загрузка…</div>
+    <h2 data-i18n="reports.title">Мои отчёты</h2>
+    <div id="list" data-i18n="common.loading">Загрузка…</div>
   </main>
   <script src="/js/api.js"></script>
+  <script src="/js/config.js"></script>
+  <script src="/js/i18n.js"></script>
   <script src="/js/reports.js"></script>
 </body>
 </html>

@@ -24,8 +24,8 @@ async function loadMinMaxHint(p, hintEl) {
 
 function formatMinMaxHint(bounds) {
   const parts = [];
-  if (bounds && bounds.min) parts.push(`мин. ${formatDateForHint(bounds.min)}`);
-  if (bounds && bounds.max) parts.push(`макс. ${formatDateForHint(bounds.max)}`);
+  if (bounds && bounds.min) parts.push(t("param.hint.min", { date: formatDateForHint(bounds.min) }));
+  if (bounds && bounds.max) parts.push(t("param.hint.max", { date: formatDateForHint(bounds.max) }));
   return parts.length ? ` (${parts.join(", ")})` : "";
 }
 
@@ -35,6 +35,7 @@ function formatDateForHint(isoDate) {
 }
 
 async function init() {
+  applyStaticTranslations();
   report = await api.getReport(reportId);
   document.getElementById("reportName").textContent = report.name;
   document.getElementById("reportDesc").textContent = report.description || "";
@@ -70,8 +71,8 @@ function showTab(which) {
 function loadingRunRowHtml() {
   return `
     <tr>
-      <td>только что</td>
-      <td><span class="status running">запускается</span></td>
+      <td>${escapeHtml(t("history.justNow"))}</td>
+      <td><span class="status running">${escapeHtml(t("history.starting"))}</span></td>
       <td class="muted">—</td>
       <td class="muted">—</td>
       <td></td>
@@ -129,7 +130,7 @@ function renderParamsForm() {
     });
     input.addEventListener("input", updateRunButtonState);
     allLabel.appendChild(allCheckbox);
-    allLabel.appendChild(document.createTextNode("Все"));
+    allLabel.appendChild(document.createTextNode(t("param.all")));
 
     row.appendChild(input);
     row.appendChild(allLabel);
@@ -137,7 +138,7 @@ function renderParamsForm() {
     form.appendChild(label);
   }
   if (!report.params || report.params.length === 0) {
-    form.innerHTML = '<p class="muted">У этого отчёта нет параметров.</p>';
+    form.innerHTML = `<p class="muted">${escapeHtml(t("report.noParams"))}</p>`;
   }
   updateRunButtonState();
 }
@@ -148,12 +149,12 @@ function validateParams() {
     if (allChecked) continue;
     if (p.type === "multilist") {
       if (!multilistState[p.name] || multilistState[p.name].selected.size === 0) {
-        return `«${p.view_name || p.name}»: выберите хотя бы одно значение или отметьте «Все»`;
+        return t("validation.selectOne", { name: p.view_name || p.name });
       }
     } else {
       const el = document.getElementById(`param_${p.name}`);
       if (!el || !el.value.trim()) {
-        return `«${p.view_name || p.name}»: заполните значение или отметьте «Все»`;
+        return t("validation.fillValue", { name: p.view_name || p.name });
       }
     }
   }
@@ -175,7 +176,7 @@ function renderMultilistParam(p) {
   const selectBtn = document.createElement("button");
   selectBtn.type = "button";
   selectBtn.className = "btn secondary";
-  selectBtn.textContent = "Выбрать (0)";
+  selectBtn.textContent = t("param.select", { n: 0 });
 
   const allLabel = document.createElement("label");
   allLabel.style.cssText = "display:flex; align-items:center; gap:4px; margin:0; white-space:nowrap;";
@@ -192,7 +193,7 @@ function renderMultilistParam(p) {
   allCheckbox.addEventListener("change", () => {
     if (allCheckbox.checked) {
       multilistState[p.name].selected.clear();
-      selectBtn.textContent = "Выбрать (0)";
+      selectBtn.textContent = t("param.select", { n: 0 });
       panel.style.display = "none";
       panel.querySelectorAll(".ml-item").forEach((cb) => { cb.checked = false; });
     }
@@ -207,7 +208,7 @@ function renderMultilistParam(p) {
   });
 
   allLabel.appendChild(allCheckbox);
-  allLabel.appendChild(document.createTextNode("Все"));
+  allLabel.appendChild(document.createTextNode(t("param.all")));
   row.appendChild(selectBtn);
   row.appendChild(allLabel);
 
@@ -217,7 +218,7 @@ function renderMultilistParam(p) {
 }
 
 async function loadMultilistOptions(p, panel, selectBtn, allCheckbox) {
-  panel.innerHTML = '<p class="muted">Загрузка…</p>';
+  panel.innerHTML = `<p class="muted">${escapeHtml(t("common.loading"))}</p>`;
   try {
     const options = await api.paramOptions(reportId, p.name);
     multilistState[p.name].options = options;
@@ -232,16 +233,16 @@ function renderMultilistPanel(p, panel, selectBtn, allCheckbox) {
   const state = multilistState[p.name];
   panel.innerHTML = `
     <div style="display:flex; gap:8px; margin-bottom:8px;">
-      <input type="text" placeholder="Поиск..." class="ml-search" style="flex:1" />
+      <input type="text" placeholder="${escapeHtml(t("param.search.placeholder"))}" class="ml-search" style="flex:1" />
       <select class="ml-mode" style="width:auto">
-        <option value="contains">Содержит</option>
-        <option value="startswith">Начинается с</option>
+        <option value="contains">${escapeHtml(t("param.search.contains"))}</option>
+        <option value="startswith">${escapeHtml(t("param.search.startswith"))}</option>
       </select>
     </div>
     <div class="ml-list" style="max-height:220px; overflow-y:auto;"></div>
     <div style="display:flex; gap:8px; margin-top:8px;">
-      <button type="button" class="btn secondary ml-clear">Очистить</button>
-      <button type="button" class="btn secondary ml-close">Закрыть</button>
+      <button type="button" class="btn secondary ml-clear">${escapeHtml(t("param.clear"))}</button>
+      <button type="button" class="btn secondary ml-close">${escapeHtml(t("param.close"))}</button>
     </div>
   `;
   const searchInput = panel.querySelector(".ml-search");
@@ -264,13 +265,13 @@ function renderMultilistPanel(p, panel, selectBtn, allCheckbox) {
           <span>${escapeHtml(String(o.label))}</span>
         </label>
       </div>`;
-    }).join("") || '<p class="muted">Ничего не найдено.</p>';
+    }).join("") || `<p class="muted">${escapeHtml(t("param.noResults"))}</p>`;
 
     listEl.querySelectorAll(".ml-item").forEach((cb) => {
       cb.addEventListener("change", () => {
         if (cb.checked) state.selected.add(cb.value);
         else state.selected.delete(cb.value);
-        selectBtn.textContent = `Выбрать (${state.selected.size})`;
+        selectBtn.textContent = t("param.select", { n: state.selected.size });
         allCheckbox.checked = state.selected.size === 0;
         updateRunButtonState();
       });
@@ -282,7 +283,7 @@ function renderMultilistPanel(p, panel, selectBtn, allCheckbox) {
 
   panel.querySelector(".ml-clear").addEventListener("click", () => {
     state.selected.clear();
-    selectBtn.textContent = "Выбрать (0)";
+    selectBtn.textContent = t("param.select", { n: 0 });
     allCheckbox.checked = true;
     renderList();
     updateRunButtonState();
@@ -316,7 +317,7 @@ async function startRun() {
     runMsg.textContent = validationError;
     return;
   }
-  runMsg.textContent = "Запускаю…";
+  runMsg.textContent = t("run.starting");
 
   let runsBefore = [];
   try {
@@ -337,7 +338,7 @@ async function startRun() {
   try {
     await api.runReport(reportId, collectParams());
 
-    runMsg.textContent = "Готово — выгрузка запущена.";
+    runMsg.textContent = t("run.started");
     loadHistory();
   } catch (e) {
     historyPollingUntil = 0;
@@ -353,7 +354,7 @@ function renderHistory(runs, withLoadingRow) {
   const el = document.getElementById("historyList");
 
   if (runs.length === 0 && !withLoadingRow) {
-    el.innerHTML = '<p class="muted">Пока нет запусков.</p>';
+    el.innerHTML = `<p class="muted">${escapeHtml(t("history.empty"))}</p>`;
     return;
   }
 
@@ -361,7 +362,7 @@ function renderHistory(runs, withLoadingRow) {
 
   el.innerHTML = `
     <table>
-      <thead><tr><th>Когда</th><th>Статус</th><th>Размер</th><th>Параметры</th><th></th></tr></thead>
+      <thead><tr><th>${escapeHtml(t("history.col.when"))}</th><th>${escapeHtml(t("history.col.status"))}</th><th>${escapeHtml(t("history.col.size"))}</th><th>${escapeHtml(t("history.col.params"))}</th><th></th></tr></thead>
       <tbody>${loadingRow}${runs.map(runRow).join("")}</tbody>
     </table>`;
 
@@ -370,12 +371,11 @@ function renderHistory(runs, withLoadingRow) {
   });
 }
 
-const STATUS_LABELS = {
-  done: "готов",
-  running: "выполняется",
-  error: "ошибка",
-  interrupted: "прервано (сервер перезапускали)",
-};
+function statusLabel(status) {
+  const key = `status.${status}`;
+  const translated = t(key);
+  return translated === key ? status : translated;
+}
 
 function formatTs(ts) {
   // ts вида 20260703_215500
@@ -430,11 +430,11 @@ function formatParamsCell(runParams) {
     const raw = runParams[p.name];
     let valueHtml;
     if (raw === undefined || raw === null || raw === "") {
-      valueHtml = "Все";
+      valueHtml = t("param.all");
     } else if (Array.isArray(raw)) {
       valueHtml = raw.length
         ? `<div class="param-value-group">${raw.map((v) => escapeHtml(String(v))).join("<br>")}</div>`
-        : "Все";
+        : t("param.all");
     } else {
       valueHtml = escapeHtml(String(raw));
     }
@@ -445,12 +445,12 @@ function formatParamsCell(runParams) {
 
 function runRow(r) {
   const when = formatTs(r.ts);
-  const statusText = STATUS_LABELS[r.status] || r.status;
+  const statusText = statusLabel(r.status);
   const dl = r.status === "done"
-    ? `<a class="btn secondary" href="${api.downloadUrl(reportId, r.file)}">Скачать</a>`
+    ? `<a class="btn secondary" href="${api.downloadUrl(reportId, r.file)}">${escapeHtml(t("history.download"))}</a>`
     : "";
   const del = r.status !== "running"
-    ? `<button class="btn danger" data-delete="${escapeHtml(r.file)}">Удалить</button>`
+    ? `<button class="btn danger" data-delete="${escapeHtml(r.file)}">${escapeHtml(t("history.delete"))}</button>`
     : "";
   const errTitle = r.status === "error" ? ` title="${escapeHtml(r.error || "")}"` : "";
   return `<tr>
@@ -463,7 +463,7 @@ function runRow(r) {
 }
 
 async function onDelete(filename) {
-  if (!confirm("Удалить этот файл отчёта?")) return;
+  if (!confirm(t("history.deleteConfirm"))) return;
   try {
     await api.deleteRun(reportId, filename);
     loadHistory();

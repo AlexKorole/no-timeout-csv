@@ -5,11 +5,12 @@ function escapeHtml(s) {
 }
 
 async function init() {
+  applyStaticTranslations();
   const listEl = document.getElementById("list");
   try {
     const reports = await api.listReports();
     if (reports.length === 0) {
-      listEl.innerHTML = '<p class="muted">Пока нет отчётов. Добавьте .json в server/configs/.</p>';
+      listEl.innerHTML = `<p class="muted">${escapeHtml(t("reports.empty"))}</p>`;
       return;
     }
     listEl.innerHTML = "";
