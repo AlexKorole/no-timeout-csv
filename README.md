@@ -52,6 +52,8 @@ python node_modules/no-timeout-csv/server/server.py \
 
 Both flags are optional and independent of each other — pass either one, both, or neither (falls back to the bundled files).
 
+Note: an OS-level environment variable always wins over a value from `.env` (same default behavior as `python-dotenv`). If a setting seems to be ignored despite a correct `--server-config` file, check whether `CONFIGS_DIR`/`RESULTS_DIR` (or any other key) is already set in your shell session from an earlier test — a leftover `set CONFIGS_DIR=...` will silently override the file every time.
+
 ## Settings — two separate files
 
 The server and the client are not one process, but two independent parts that do not read each other’s settings. That is why there are two settings files:
