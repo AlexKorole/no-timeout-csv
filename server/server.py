@@ -13,6 +13,7 @@ server.py — единственный долгоживущий процесс. 
     python server.py
 Слушает на HOST:PORT из .env (по умолчанию 127.0.0.1:8000).
 """
+import argparse
 import json
 import os
 import queue
@@ -30,7 +31,35 @@ from connector_loader import list_connectors
 from messages import msg
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-load_env_file(os.path.join(BASE_DIR, ".env"))
+
+# --server-config / --client-config — путь к внешним конфигам, лежащим ВНЕ
+# node_modules (сами бандловые server/.env и client/js/config.js слетают
+# при npm install/переустановке пакета).
+_arg_parser = argparse.ArgumentParser(description="no-timeout-csv server")
+_arg_parser.add_argument("--server-config", dest="server_config", default=None,
+                          help="Path to an external .env (overrides the bundled server/.env)")
+_arg_parser.add_argument("--client-config", dest="client_config", default=None,
+                          help="Path to an external config.js (overrides the bundled client/js/config.js)")
+_args, _ = _arg_parser.parse_known_args()
+
+_env_path = os.path.join(BASE_DIR, ".env")
+if _args.server_config:
+    _candidate = os.path.abspath(_args.server_config)
+    if os.path.exists(_candidate):
+        _env_path = _candidate
+    else:
+        print(f"[!] --server-config points to {_candidate}, but that file doesn't exist "
+              f"— using the bundled server/.env instead (if present)")
+load_env_file(_env_path)
+
+CLIENT_CONFIG_OVERRIDE = None
+if _args.client_config:
+    _client_candidate = os.path.abspath(_args.client_config)
+    if os.path.exists(_client_candidate):
+        CLIENT_CONFIG_OVERRIDE = _client_candidate
+    else:
+        print(f"[!] --client-config points to {_client_candidate}, but that file doesn't exist "
+              f"— using the bundled client/js/config.js instead")
 
 # CONFIGS_DIR/RESULTS_DIR по умолчанию — рядом с server.py (случай "просто склонировал
 # репозиторий"). Но при установке через npm server.py оказывается внутри node_modules —
@@ -466,6 +495,17 @@ class Handler(BaseHTTPRequestHandler):
     def _static(self, path):
         if path == "/":
             path = "/index.html"
+
+        if path == "/js/config.js" and CLIENT_CONFIG_OVERRIDE:
+            with open(CLIENT_CONFIG_OVERRIDE, "rb") as f:
+                data = f.read()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/javascript; charset=utf-8")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+            return
+
         full = os.path.abspath(os.path.join(CLIENT_DIR, path.lstrip("/")))
         if not full.startswith(CLIENT_DIR) or not os.path.isfile(full):
             return self._error(404, msg("not_found"))

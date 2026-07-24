@@ -40,6 +40,18 @@ python node_modules/no-timeout-csv/server/server.py
 
 When installing via npm, it is worth setting `CONFIGS_DIR`/`RESULTS_DIR` in `.env` to a path **outside** `node_modules` right away.
 
+### Keeping your config outside `node_modules`
+
+`npm install` puts both `server/.env` and `client/js/config.js` inside `node_modules`, which gets wiped on every reinstall. Keep your config elsewhere with two optional flags:
+
+```
+python node_modules/no-timeout-csv/server/server.py \
+  --server-config /path/to/your/server.env \
+  --client-config /path/to/your/config.js
+```
+
+Both flags are optional and independent of each other — pass either one, both, or neither (falls back to the bundled files).
+
 ## Settings — two separate files
 
 The server and the client are not one process, but two independent parts that do not read each other’s settings. That is why there are two settings files:
